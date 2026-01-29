@@ -34,6 +34,7 @@ export class SettingReloader extends Component {
   }
 
   onload() {
+    // we want to capture 'this' in the monkey patch
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     this.plugin.addChild(this); // ensure we unload when hot-reload does

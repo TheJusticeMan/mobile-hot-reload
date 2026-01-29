@@ -1,3 +1,4 @@
+// fs is a Node.js module; this import will be ignored in non-Node environments
 // eslint-disable-next-line import/no-nodejs-modules
 import { lstatSync } from "fs";
 import { FileSystemAdapter } from "obsidian";

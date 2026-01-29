@@ -67,7 +67,7 @@ export default class MobileHotReload extends Plugin {
       callback: () => this.reloadManager.check(true),
     });
 
-    this.app.workspace.onLayoutReady(async () => {
+    this.app.workspace.onLayoutReady(() => {
       void this.reindexPlugins();
 
       // Native watching (Desktop only)

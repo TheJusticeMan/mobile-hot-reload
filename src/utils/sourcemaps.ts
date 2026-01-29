@@ -17,6 +17,7 @@ export function preventSourcemapStripping(app: App, pluginId: string) {
     return around(app.vault.adapter, {
       read(old) {
         return function (this: unknown, path: string) {
+          // This function uses 'arguments' to maintain compatibility
           // eslint-disable-next-line prefer-rest-params
           const res = old.apply(this, arguments as unknown as [string]);
           if (!path.endsWith(`/${pluginId}/main.js`)) return res;
