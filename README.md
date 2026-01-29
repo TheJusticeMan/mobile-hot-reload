@@ -1,90 +1,66 @@
-# Obsidian Sample Plugin
+# Mobile Hot Reload
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Hot reload Obsidian plugins on mobile and desktop by watching for file changes. This plugin includes a built-in server and client to bridge the gap between your desktop development environment and mobile testing devices.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Instant Hot Reload**: Automatically reloads plugins when `main.js`, `manifest.json`, `styles.css`, or `data.json` change.
+- **Cross-Device Sync**: Develop on desktop and see changes instantly on your phone or tablet.
+- **Three Operation Modes**:
+  - **Standalone**: Watches local files for changes (ideal for desktop-only dev).
+  - **Server**: (Desktop only) Watches local files and serves updates to mobile clients.
+  - **Client**: (Mobile/Desktop) Connects to a server to download and apply plugin updates.
+- **Automatic Detection**: Automatically identifies plugins to watch if they contain a `.git` folder or a `.hotreload` file.
+- **Data Sync**: Optionally synchronize `data.json` to keep plugin settings in sync across devices.
 
-## First time developing plugins?
+## Getting Started
 
-Quick starting guide for new plugin devs:
+### 1. Installation
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+1. Install the plugin via the Obsidian community plugin browser or manually.
+2. Enable the plugin in **Settings → Community plugins**.
 
-## Releasing new releases
+### 2. Configure Your Mode
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+- **Desktop Development**: Set mode to **Server** in the plugin settings.
+- **Mobile Testing**: Set mode to **Client** and enter your desktop's IP address and the configured port (default: 8080).
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### 3. Mark Plugins for Watching
 
-## Adding your plugin to the community plugin list
+By default, the plugin automatically watches any plugin in your vault that:
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+- Contains a `.git` directory.
+- OR contains an empty file named `.hotreload`.
 
-## How to use
+You can also manually specify plugins to watch in the settings tab.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## Settings
 
-## Manually installing the plugin
+- **Mode**: Choose between Standalone, Server, or Client.
+- **Polling Interval**: How often to check for changes (default: 2000ms).
+- **Auto-Detect**: Automatically watch plugins with development markers.
+- **Sync Data Files**: Enable to synchronize `data.json` changes.
+- **Server Port**: The port the server listens on (default: 8080).
+- **Remote URL**: The address of the server (e.g., `http://192.168.1.5:8080`).
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+## Commands
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+- **Check for plugin changes**: Manually trigger a check across all watched plugins.
 
-## Funding URL
+## Development
 
-You can include funding URLs where people who use your plugin can financially support it.
+1. Clone the repository.
+2. Run `npm install` to install dependencies.
+3. Run `npm run dev` to start the build in watch mode.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+## Manual Installation
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+- Copy `main.js`, `manifest.json`, and `styles.css` (if present) to your vault's plugin folder: `<Vault>/.obsidian/plugins/mobile-hot-reload/`.
 
-If you have multiple URLs, you can also do:
+## Credits
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+This plugin incorporates logic and ideas from [obsidian-hot-reload](https://github.com/pjeby/hot-reload) by **PJ Eby**, licensed under the ISC License.
 
-## API Documentation
+---
 
-See https://docs.obsidian.md
+Created by [Justice Vellacott](https://github.com/TheJusticeMan)

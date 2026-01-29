@@ -1,99 +1,206 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+/*
+Original logic derived from obsidian-hot-reload by PJ Eby (ISC License).
+*/
+import { FileSystemAdapter, Notice, Platform, Plugin } from "obsidian";
+import { SettingReloader } from "SettingReloader";
+import { TRACKED_FILENAMES } from "./constants";
+import { ReloadManager } from "./core/reload-manager";
+import { DEFAULT_SETTINGS, MobileHotReloadSettings } from "./settings";
+import { ClientStats } from "./types";
+import { MobileHotReloadSettingTab } from "./ui/settings-tab";
+import { isSymlink } from "./utils/isSymlink";
+import { preventSourcemapStripping } from "./utils/sourcemaps";
 
-// Remember to rename these classes and interfaces!
+/**
+ * Main plugin class for Mobile Hot Reload.
+ */
+export default class MobileHotReload extends Plugin {
+  /**
+   * Current plugin settings.
+   */
+  settings: MobileHotReloadSettings;
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+  /**
+   * Manages the reload logic and orchestration.
+   */
+  reloadManager: ReloadManager;
 
-	async onload() {
-		await this.loadSettings();
+  settingReloader = new SettingReloader(this);
+  /**
+   * Statistics and state for the hot reload client.
+   */
+  clientStats: ClientStats = {
+    lastSync: null as string | null,
+    totalFilesFetched: 0,
+    status: "idle" as "idle" | "syncing" | "error",
+    plugins: {} as Record<
+      string,
+      { lastReload: string | null; filesFetched: number }
+    >,
+  };
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+  /**
+   * Plugin loading lifecycle method.
+   */
+  async onload() {
+    await this.loadSettings();
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+    this.reloadManager = new ReloadManager(
+      this.app,
+      this.manifest,
+      this.settings,
+      this.clientStats,
+      (pluginId) => this.reloadPlugin(pluginId),
+    );
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+    this.addSettingTab(new MobileHotReloadSettingTab(this.app, this));
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
+    this.addRibbonIcon(
+      "refresh-cw",
+      "Hot reload: manual check",
+      () => void this.reloadManager.check(true),
+    );
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+    this.addCommand({
+      id: "check-for-changes",
+      name: "Check for plugin changes",
+      callback: () => this.reloadManager.check(true),
+    });
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
+    this.app.workspace.onLayoutReady(async () => {
+      void this.reindexPlugins();
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+      // Native watching (Desktop only)
+      if (Platform.isDesktop) {
+        this.registerEvent(this.app.vault.on("raw", this.onFileChange));
+        void this.watch(this.app.plugins.getPluginFolder());
+      }
+    });
+  }
 
-	}
+  /**
+   * Handler for raw file changes in the vault (Desktop only).
+   */
+  private onFileChange = (filename: string) => {
+    const pluginFolder = this.app.plugins.getPluginFolder();
+    if (!pluginFolder || !filename.startsWith(pluginFolder + "/")) return;
 
-	onunload() {
-	}
+    const relativePath = filename.substring(pluginFolder.length + 1);
+    const parts = relativePath.split("/");
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
-	}
+    if (parts.length === 1) {
+      // It's a directory in the plugins folder
+      return void this.watch(filename);
+    }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+    if (parts.length !== 2) return;
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+    const [dir, base] = parts;
+    if (!dir || !base) return;
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+    const pluginId = this.reloadManager.getPluginIdFromDir(dir);
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
+    if (
+      base === "manifest.json" ||
+      base === ".hotreload" ||
+      base === ".git" ||
+      !pluginId
+    ) {
+      return void this.reindexPlugins();
+    }
+
+    if (!TRACKED_FILENAMES.includes(base)) return;
+
+    void this.reloadManager.check();
+  };
+
+  /**
+   * Starts watching a path for changes if needed (Desktop only).
+   */
+  async watch(path: string) {
+    const { adapter } = this.app.vault;
+    if (
+      !(adapter instanceof FileSystemAdapter) ||
+      Object.prototype.hasOwnProperty.call(adapter.watchers, path)
+    )
+      return;
+    if ((await adapter.stat(path))?.type !== "folder") return;
+
+    const watchNeeded = !Platform.isMacOS && !Platform.isWin;
+    if (watchNeeded || isSymlink(adapter, path)) {
+      await adapter.startWatchPath(path);
+    }
+  }
+
+  /**
+   * Plugin unloading lifecycle method.
+   */
+  onunload() {
+    this.reloadManager.stop();
+  }
+
+  /**
+   * Loads plugin settings from disk.
+   */
+  async loadSettings() {
+    this.settings = Object.assign(
+      {},
+      DEFAULT_SETTINGS,
+      (await this.loadData()) as Partial<MobileHotReloadSettings>,
+    );
+  }
+
+  /**
+   * Saves plugin settings to disk.
+   */
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+
+  /**
+   * Re-initializes the plugin watching and server.
+   */
+  async reindexPlugins() {
+    await this.reloadManager.reindex();
+  }
+
+  /**
+   * Disables and re-enables a plugin to trigger a hot reload.
+   *
+   * @param pluginId - The ID of the plugin to reload.
+   */
+  async reloadPlugin(pluginId: string) {
+    const plugins = this.app.plugins;
+
+    if (!plugins.enabledPlugins.has(pluginId)) return;
+
+    this.settingReloader.onPluginDisable(pluginId);
+
+    // Ensure sourcemaps are loaded (Obsidian 0.14+)
+    const oldDebug = window.localStorage.getItem("debug-plugin");
+    window.localStorage.setItem("debug-plugin", "1");
+    const uninstall = preventSourcemapStripping(this.app, pluginId);
+
+    try {
+      await plugins.disablePlugin(pluginId);
+      await plugins.enablePlugin(pluginId);
+      if (this.settings.showReloadNotice) {
+        new Notice(`Plugin "${pluginId}" reloaded`);
+      }
+    } catch (e) {
+      console.error(
+        `[Mobile Hot Reload] Failed to reload plugin ${pluginId}`,
+        e,
+      );
+      new Notice(`Failed to reload plugin "${pluginId}"`);
+    } finally {
+      // Restore previous setting
+      if (oldDebug === null) {
+        window.localStorage.removeItem("debug-plugin");
+      } else {
+        window.localStorage.setItem("debug-plugin", oldDebug);
+      }
+      uninstall?.();
+    }
+  }
 }

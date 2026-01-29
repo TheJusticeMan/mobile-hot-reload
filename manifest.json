@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "mobile-hot-reload",
+	"name": "Mobile Hot Reload",
 	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"minAppVersion": "1.11.6",
+	"description": "Hot reload plugins on mobile and desktop by watching for file changes. With a built in server and client for desktop to mobile communication.",
+	"author": "Justice Vellacott",
+	"authorUrl": "https://github.com/TheJusticeMan",
+	"fundingUrl": "https://github.com/sponsors/TheJusticeMan",
 	"isDesktopOnly": false
 }
