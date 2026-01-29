@@ -1,5 +1,4 @@
-/* This is needed for the server */
-/* eslint-disable import/no-nodejs-modules */
+/* eslint-disable import/no-nodejs-modules -- This is needed for the server */
 import { Buffer } from "buffer";
 import { createServer, Server, IncomingMessage, ServerResponse } from "http";
 import { App, normalizePath } from "obsidian";
