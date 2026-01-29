@@ -68,7 +68,7 @@ export default class MobileHotReload extends Plugin {
     });
 
     this.app.workspace.onLayoutReady(() => {
-      void this.reindexPlugins();
+      this.reindexPlugins();
 
       // Native watching (Desktop only)
       if (Platform.isDesktop) {
@@ -106,7 +106,7 @@ export default class MobileHotReload extends Plugin {
       base === ".git" ||
       !pluginId
     ) {
-      return void this.reindexPlugins();
+      return this.reindexPlugins();
     }
 
     if (!TRACKED_FILENAMES.includes(base)) return;
@@ -160,8 +160,8 @@ export default class MobileHotReload extends Plugin {
   /**
    * Re-initializes the plugin watching and server.
    */
-  async reindexPlugins() {
-    await this.reloadManager.reindex();
+  reindexPlugins() {
+    this.reloadManager.reindex();
   }
 
   /**

@@ -41,7 +41,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                 .onChange(async (value: "standalone" | "server" | "client") => {
                   this.plugin.settings.mode = value;
                   await this.plugin.saveSettings();
-                  await this.plugin.reindexPlugins();
+                  this.plugin.reindexPlugins();
                   this.display();
                 }),
             ),
@@ -63,7 +63,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                       if (!isNaN(numValue) && numValue > 0) {
                         this.plugin.settings.serverPort = numValue;
                         await this.plugin.saveSettings();
-                        await this.plugin.reindexPlugins();
+                        this.plugin.reindexPlugins();
                       }
                     }),
                 ),
@@ -83,7 +83,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                       this.plugin.settings.remoteUrl = value;
                       await this.plugin.saveSettings();
-                      await this.plugin.reindexPlugins();
+                      this.plugin.reindexPlugins();
                     }),
                 ),
           )
@@ -103,7 +103,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                   this.plugin.settings.autoDetect = value;
                   await this.plugin.saveSettings();
-                  await this.plugin.reindexPlugins();
+                  this.plugin.reindexPlugins();
                   this.display();
                 }),
             ),
@@ -119,7 +119,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                   this.plugin.settings.syncDataFiles = value;
                   await this.plugin.saveSettings();
-                  await this.plugin.reindexPlugins();
+                  this.plugin.reindexPlugins();
                 }),
             ),
       )
@@ -157,7 +157,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                         .map((s) => s.trim())
                         .filter((s) => s.length > 0);
                       await this.plugin.saveSettings();
-                      await this.plugin.reindexPlugins();
+                      this.plugin.reindexPlugins();
                     }),
                 ),
           )
@@ -178,7 +178,7 @@ export class MobileHotReloadSettingTab extends PluginSettingTab {
                   if (!isNaN(numValue) && numValue > 0) {
                     this.plugin.settings.pollingInterval = numValue;
                     await this.plugin.saveSettings();
-                    await this.plugin.reindexPlugins();
+                    this.plugin.reindexPlugins();
                   }
                 }),
             ),

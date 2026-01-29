@@ -24,12 +24,12 @@ export class ReloadManager {
     private reloadPlugin: (pluginId: string) => Promise<void>,
   ) {}
 
-  public async reindex() {
+  public reindex() {
     this.stop();
 
     // Start server if in server mode
     if (Platform.isDesktop && this.settings.mode === "server") {
-      await this.startServer();
+      this.startServer();
     }
 
     // Initialize strategy
@@ -103,7 +103,7 @@ export class ReloadManager {
     this.pluginReloaders = {};
   }
 
-  private async startServer() {
+  private startServer() {
     if (!this.server) {
       this.server = new HotReloadServer(
         this.app,
@@ -112,7 +112,7 @@ export class ReloadManager {
         () => this.settings.syncDataFiles,
       );
     }
-    await this.server.start();
+    this.server.start();
   }
 
   private stopServer() {
