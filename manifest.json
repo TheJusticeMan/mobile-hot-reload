@@ -1,7 +1,7 @@
 {
 	"id": "mobile-hot-reload",
 	"name": "Mobile Hot Reload",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.11.6",
 	"description": "Hot reload plugins on mobile and desktop by watching for file changes. With a built in server and client for desktop to mobile communication.",
 	"author": "Justice Vellacott",
