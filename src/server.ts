@@ -1,7 +1,5 @@
-/* eslint-disable import/no-nodejs-modules -- This is needed for the server */
-import { Buffer } from "buffer";
-import { createServer, Server, IncomingMessage, ServerResponse } from "http";
-import { App, normalizePath } from "obsidian";
+import type { Server, IncomingMessage, ServerResponse } from "http";
+import { App, normalizePath, Platform } from "obsidian";
 import { TRACKED_FILENAMES } from "./constants";
 
 /**
@@ -42,20 +40,24 @@ export class HotReloadServer {
    * Resets statistics upon starting.
    */
   start(): void {
+    if (!Platform.isDesktop) return;
     this.stop();
     this.stats.startTime = Date.now();
     this.stats.requestCount = 0;
     this.stats.errorCount = 0;
 
-    this.server = createServer((req, res) => {
+    const { createServer } = require("http") as typeof import("http");
+
+    const server = createServer((req, res) => {
       void this.handleRequest(req, res);
     });
+    this.server = server;
 
-    this.server.listen(this.port, () => {
+    server.listen(this.port, () => {
       console.debug(`[Hot Reload Server] Started on port ${this.port}`);
     });
 
-    this.server.on("error", (e) => {
+    server.on("error", (e) => {
       this.stats.errorCount++;
       console.error("[Hot Reload Server] Server error:", e);
     });
@@ -210,7 +212,7 @@ export class HotReloadServer {
 
         res.setHeader("Content-Type", contentType);
         res.writeHead(200);
-        res.end(Buffer.from(content));
+        res.end(new Uint8Array(content));
         return;
       }
     } catch (e) {

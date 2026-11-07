@@ -22,7 +22,7 @@ export function taskQueue() {
             try {
               resolve(await action());
             } catch (e) {
-              reject(e as Error);
+              reject(e instanceof Error ? e : new Error(String(e)));
             }
           })(),
       );

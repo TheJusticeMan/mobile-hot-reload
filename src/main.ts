@@ -30,13 +30,10 @@ export default class MobileHotReload extends Plugin {
    * Statistics and state for the hot reload client.
    */
   clientStats: ClientStats = {
-    lastSync: null as string | null,
+    lastSync: null,
     totalFilesFetched: 0,
-    status: "idle" as "idle" | "syncing" | "error",
-    plugins: {} as Record<
-      string,
-      { lastReload: string | null; filesFetched: number }
-    >,
+    status: "idle",
+    plugins: {},
   };
 
   /**
@@ -120,6 +117,7 @@ export default class MobileHotReload extends Plugin {
   async watch(path: string) {
     const { adapter } = this.app.vault;
     if (
+      !Platform.isDesktop ||
       !(adapter instanceof FileSystemAdapter) ||
       Object.prototype.hasOwnProperty.call(adapter.watchers, path)
     )
