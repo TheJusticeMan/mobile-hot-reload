@@ -125,7 +125,7 @@ export default class MobileHotReload extends Plugin {
     if ((await adapter.stat(path))?.type !== "folder") return;
 
     const watchNeeded = !Platform.isMacOS && !Platform.isWin;
-    if (watchNeeded || (await isSymlink(adapter, path))) {
+    if (watchNeeded || isSymlink(adapter, path)) {
       await adapter.startWatchPath(path);
     }
   }

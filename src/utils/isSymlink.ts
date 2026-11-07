@@ -1,3 +1,4 @@
+import { Platform } from "obsidian";
 import type { FileSystemAdapter } from "obsidian";
 
 /**
@@ -7,12 +8,14 @@ import type { FileSystemAdapter } from "obsidian";
  * environments. In environments where this check is unavailable or fails,
  * it conservatively returns `true` to ensure hot-reloading remains active.
  */
-export async function isSymlink(
+export function isSymlink(
   adapter: FileSystemAdapter,
   path: string,
-): Promise<boolean> {
+): boolean {
+  if (!Platform.isDesktop) return true;
+
   try {
-    const { lstatSync } = await import("fs");
+    const { lstatSync } = require("fs") as typeof import("fs");
     const realPath = [adapter.basePath, path].join("/");
     const lstat = lstatSync(realPath, { throwIfNoEntry: false });
     return !!(lstat && lstat.isSymbolicLink());

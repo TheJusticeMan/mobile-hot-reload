@@ -125,7 +125,7 @@ export class ReloadManager {
         () => this.settings.syncDataFiles,
       );
     }
-    await this.server.start();
+    this.server.start();
   }
 
   private stopServer() {

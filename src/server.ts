@@ -8,7 +8,6 @@ import { TRACKED_FILENAMES } from "./constants";
  */
 export class HotReloadServer {
   private server: Server | null = null;
-  private startGeneration = 0;
   private app: App;
   private port: number;
   private getWatchedPlugins: () => Promise<string[]>;
@@ -40,26 +39,25 @@ export class HotReloadServer {
    * Initializes and starts the HTTP server.
    * Resets statistics upon starting.
    */
-  async start(): Promise<void> {
+  start(): void {
     if (!Platform.isDesktop) return;
     this.stop();
-    const generation = this.startGeneration;
     this.stats.startTime = Date.now();
     this.stats.requestCount = 0;
     this.stats.errorCount = 0;
 
-    const { createServer } = await import("http");
-    if (generation !== this.startGeneration) return;
+    const { createServer } = require("http") as typeof import("http");
 
-    this.server = createServer((req, res) => {
+    const server = createServer((req, res) => {
       void this.handleRequest(req, res);
     });
+    this.server = server;
 
-    this.server.listen(this.port, () => {
+    server.listen(this.port, () => {
       console.debug(`[Hot Reload Server] Started on port ${this.port}`);
     });
 
-    this.server.on("error", (e) => {
+    server.on("error", (e) => {
       this.stats.errorCount++;
       console.error("[Hot Reload Server] Server error:", e);
     });
@@ -239,7 +237,6 @@ export class HotReloadServer {
    * Gracefully shuts down the HTTP server.
    */
   stop(): void {
-    this.startGeneration++;
     if (this.server) {
       this.server.close();
       this.server = null;
