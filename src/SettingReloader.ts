@@ -34,7 +34,7 @@ export class SettingReloader extends Component {
   }
 
   onload() {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- preserve context
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- capture this before the wrapper supplies the target plugin as its own this
     const self = this;
     this.plugin.addChild(this); // ensure we unload when hot-reload does
     this.register(
@@ -46,7 +46,7 @@ export class SettingReloader extends Component {
               const { lastTab, left, top } = self;
               // only try this once per plugin id per disable
               self.lastTab = "";
-              setTimeout(() => {
+              window.setTimeout(() => {
                 if (
                   self.lastTab || // another state was saved
                   !this.app.setting.containerEl.isShown() || // settings not open

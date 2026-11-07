@@ -1,6 +1,4 @@
-// eslint-disable-next-line import/no-nodejs-modules -- This is needed for the symlink check
-import { lstatSync } from "fs";
-import { FileSystemAdapter } from "obsidian";
+import type { FileSystemAdapter } from "obsidian";
 
 /**
  * Utility to check if a path within the vault is a symbolic link.
@@ -9,20 +7,17 @@ import { FileSystemAdapter } from "obsidian";
  * environments. In environments where this check is unavailable or fails,
  * it conservatively returns `true` to ensure hot-reloading remains active.
  */
-export const isSymlink = (() => {
+export async function isSymlink(
+  adapter: FileSystemAdapter,
+  path: string,
+): Promise<boolean> {
   try {
-    /**
-     * @param adapter - The Obsidian FileSystemAdapter instance.
-     * @param path - The vault-relative path to check.
-     * @returns `true` if the path is a symbolic link; `false` otherwise.
-     */
-    return (adapter: FileSystemAdapter, path: string): boolean => {
-      const realPath = [adapter.basePath, path].join("/");
-      const lstat = lstatSync(realPath, { throwIfNoEntry: false });
-      return !!(lstat && lstat.isSymbolicLink());
-    };
+    const { lstatSync } = await import("fs");
+    const realPath = [adapter.basePath, path].join("/");
+    const lstat = lstatSync(realPath, { throwIfNoEntry: false });
+    return !!(lstat && lstat.isSymbolicLink());
   } catch {
     /** Fallback for non-Node environments. */
-    return () => true;
+    return true;
   }
-})();
+}

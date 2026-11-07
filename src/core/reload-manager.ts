@@ -1,6 +1,6 @@
 import { App, PluginManifest, Platform, Notice, debounce } from "obsidian";
 import { MobileHotReloadSettings } from "../settings";
-import { HotReloadServer } from "../server";
+import type { HotReloadServer } from "../server";
 import { SyncStrategy, StrategyContext } from "./strategy/sync-strategy";
 import { StandaloneStrategy } from "./strategy/standalone-strategy";
 import { ClientStrategy } from "./strategy/client-strategy";
@@ -14,6 +14,7 @@ export class ReloadManager {
   private lastModifiedMap: Map<string, number> = new Map();
   private run = taskQueue();
   private pluginDirMap: Map<string, string> = new Map();
+  private serverStartupId = 0;
   private pluginReloaders: Record<string, ReturnType<typeof debounce>> = {};
 
   constructor(
@@ -29,7 +30,9 @@ export class ReloadManager {
 
     // Start server if in server mode
     if (Platform.isDesktop && this.settings.mode === "server") {
-      this.startServer();
+      void this.startServer().catch((error: unknown) => {
+        console.error("[Mobile Hot Reload] Failed to start server:", error);
+      });
     }
 
     // Initialize strategy
@@ -103,7 +106,17 @@ export class ReloadManager {
     this.pluginReloaders = {};
   }
 
-  private startServer() {
+  private async startServer() {
+    const startupId = ++this.serverStartupId;
+    const { HotReloadServer } = await import("../server");
+    if (
+      startupId !== this.serverStartupId ||
+      !Platform.isDesktop ||
+      this.settings.mode !== "server"
+    ) {
+      return;
+    }
+
     if (!this.server) {
       this.server = new HotReloadServer(
         this.app,
@@ -112,10 +125,11 @@ export class ReloadManager {
         () => this.settings.syncDataFiles,
       );
     }
-    this.server.start();
+    await this.server.start();
   }
 
   private stopServer() {
+    this.serverStartupId++;
     if (this.server) {
       this.server.stop();
       this.server = null;

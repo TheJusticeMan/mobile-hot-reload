@@ -1,7 +1,5 @@
-/* eslint-disable import/no-nodejs-modules -- This is needed for the server */
-import { Buffer } from "buffer";
-import { createServer, Server, IncomingMessage, ServerResponse } from "http";
-import { App, normalizePath } from "obsidian";
+import type { Server, IncomingMessage, ServerResponse } from "http";
+import { App, normalizePath, Platform } from "obsidian";
 import { TRACKED_FILENAMES } from "./constants";
 
 /**
@@ -10,6 +8,7 @@ import { TRACKED_FILENAMES } from "./constants";
  */
 export class HotReloadServer {
   private server: Server | null = null;
+  private startGeneration = 0;
   private app: App;
   private port: number;
   private getWatchedPlugins: () => Promise<string[]>;
@@ -41,11 +40,16 @@ export class HotReloadServer {
    * Initializes and starts the HTTP server.
    * Resets statistics upon starting.
    */
-  start(): void {
+  async start(): Promise<void> {
+    if (!Platform.isDesktop) return;
     this.stop();
+    const generation = this.startGeneration;
     this.stats.startTime = Date.now();
     this.stats.requestCount = 0;
     this.stats.errorCount = 0;
+
+    const { createServer } = await import("http");
+    if (generation !== this.startGeneration) return;
 
     this.server = createServer((req, res) => {
       void this.handleRequest(req, res);
@@ -210,7 +214,7 @@ export class HotReloadServer {
 
         res.setHeader("Content-Type", contentType);
         res.writeHead(200);
-        res.end(Buffer.from(content));
+        res.end(new Uint8Array(content));
         return;
       }
     } catch (e) {
@@ -235,6 +239,7 @@ export class HotReloadServer {
    * Gracefully shuts down the HTTP server.
    */
   stop(): void {
+    this.startGeneration++;
     if (this.server) {
       this.server.close();
       this.server = null;
